@@ -33,7 +33,7 @@ export function LandingPageComponent() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <span className="text-2xl font-bold text-[#00856A]">TATA Med Tracking</span>
+                <span className="text-2xl font-bold text-[#00856A]">Poppai.AI Med Tracking</span>
               </div>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -93,7 +93,7 @@ export function LandingPageComponent() {
                   <span className="block">Aging Parents</span>
                 </h1>
                 <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-                  TATA Med Tracking: Your partner in providing the best care for your loved ones.
+                  Poppai.AI Med Tracking: Your partner in providing the best care for your loved ones.
                 </p>
                 <div className="mt-10 sm:flex">
                   <div className="rounded-full shadow">
@@ -124,11 +124,11 @@ export function LandingPageComponent() {
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24"
         >
           <div className="text-center">
-            <h2 className="text-base text-[#00856A] font-semibold tracking-wide uppercase">TATA Med Tracking</h2>
+            <h2 className="text-base text-[#00856A] font-semibold tracking-wide uppercase">Poppai.AI Med Tracking</h2>
             <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
             Revolutionizing Health Management            </p>
             <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-            Take control of your loved one's health with TATA Med Tracking—an AI-driven solution designed to make medical tracking stress-free and efficient.
+            Take control of your loved one's health with Poppai.AI Med Tracking—an AI-driven solution designed to make medical tracking stress-free and efficient.
             </p>
           </div>
 
@@ -141,7 +141,7 @@ export function LandingPageComponent() {
                 },
                 {
                   title: 'Seamless Medication Management',
-                  description: 'Never miss a dose again. TATA Med Tracking\'s advanced medication reminders help your loved ones maintain their health regimen while keeping you informed. Receive timely notifications for every dose, making health management simple and effective.'
+                  description: 'Never miss a dose again. Poppai.AI Med Tracking\'s advanced medication reminders help your loved ones maintain their health regimen while keeping you informed. Receive timely notifications for every dose, making health management simple and effective.'
                 },
                 {
                   title: 'Instant Health Alerts',
@@ -149,7 +149,7 @@ export function LandingPageComponent() {
                 },
                 {
                   title: 'Caring & Coordination Made Easy',
-                  description: 'Bring the family together in caregiving. TATA Med Tracking simplifies communication between family members and/or caregivers, so everyone is on the same page. Assign tasks, track progress, and manage updates seamlessly from the app.'
+                  description: 'Bring the family together in caregiving. Poppai.AI Med Tracking simplifies communication between family members and/or caregivers, so everyone is on the same page. Assign tasks, track progress, and manage updates seamlessly from the app.'
                 }
               ].map((feature) => (
                 <div key={feature.title} className="relative">
@@ -196,7 +196,7 @@ export function LandingPageComponent() {
                     <p className="mt-2 text-base text-gray-500 text-center max-w-xs">
                       {index === 0 && "Quickly search from the FDA meds list and select the right medications, dosage, and schedule for your loved one."}
                       {index === 1 && "With simple elements, let us know about your loved one's inner circle and basic health information. This helps personalize the experience."}
-                      {index === 2 && "With just a few clicks and some basic info, you can get onboard and start using TATA Med Tracking to simplify health management."}
+                      {index === 2 && "With just a few clicks and some basic info, you can get onboard and start using Poppai.AI Med Tracking to simplify health management."}
                       {index === 3 && "Receive real-time updates and alerts to stay informed of your loved one's health status at all times."}
                     </p>
                   </div>
@@ -219,10 +219,10 @@ export function LandingPageComponent() {
             </h2>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {[
-                { name: "Sarah L.", quote: "TATA Med Tracking has given me peace of mind knowing that I can monitor my mother's health from afar. It truly makes a difference." },
+                { name: "Sarah L.", quote: "Poppai.AI Med Tracking has given me peace of mind knowing that I can monitor my mother's health from afar. It truly makes a difference." },
                 { name: "Michael R.", quote: "The medication reminders have been a game-changer for my father's health management. I no longer worry about missed doses." },
                 { name: "Emily T.", quote: "The caregiver coordination feature has made it so much easier to communicate with my siblings about our parents' care. We're all more involved now." },
-                { name: "Alex P.", quote: "Having an updated list of my father's meds saved us during an ER visit. The doctors avoided a dangerous interaction thanks to TATA Med Tracking." }
+                { name: "Alex P.", quote: "Having an updated list of my father's meds saved us during an ER visit. The doctors avoided a dangerous interaction thanks to Poppai.AI Med Tracking." }
               ].map((testimonial, index) => (
                 <div key={index} className="bg-white shadow-lg rounded-lg p-8">
                   <div className="flex items-center mb-4">
@@ -262,10 +262,10 @@ export function LandingPageComponent() {
             </h2>
             <div className="space-y-8">
               {[
-                { q: "How does TATA Med Tracking work?", a: "TATA Med Tracking leverages wearable devices, a smartphone app, and our AI-driven platform to monitor health metrics. It provides real-time updates, medication reminders, and health alerts, ensuring you have everything you need to manage your loved one's care effectively." },
+                { q: "How does Poppai.AI Med Tracking work?", a: "Poppai.AI Med Tracking leverages wearable devices, a smartphone app, and our AI-driven platform to monitor health metrics. It provides real-time updates, medication reminders, and health alerts, ensuring you have everything you need to manage your loved one's care effectively." },
                 { q: "Is my health data secure?", a: "Yes, we prioritize data security. All health information is encrypted and stored securely in compliance with HIPAA regulations. Your data is never shared without your explicit consent." },
                 { q: "Can multiple family members access the same account?", a: "Absolutely. Our caregiver coordination feature allows multiple family members to participate in your loved one's care. You can assign different permission levels, ensuring that everyone stays informed while maintaining control over privacy." },
-                { q: "What types of health metrics does TATA Med Tracking monitor?", a: "Our platform tracks a wide range of metrics, including activity levels, sleep patterns, and medication adherence. Metrics are customizable to suit your loved one's specific health needs." }
+                { q: "What types of health metrics does Poppai.AI Med Tracking monitor?", a: "Our platform tracks a wide range of metrics, including activity levels, sleep patterns, and medication adherence. Metrics are customizable to suit your loved one's specific health needs." }
               ].map((faq, index) => (
                 <div key={index} className="bg-white shadow overflow-hidden sm:rounded-lg">
                   <div className="px-4 py-5 sm:px-6">
@@ -290,7 +290,7 @@ export function LandingPageComponent() {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-extrabold mb-4">Ready to get started?</h2>
-            <p className="text-xl mb-8">Join thousands of families providing better care to their loved ones with TATA Med Tracking. Take the first step towards stress-free health management today.!</p>
+            <p className="text-xl mb-8">Join thousands of families providing better care to their loved ones with Poppai.AI Med Tracking. Take the first step towards stress-free health management today.!</p>
             <button className="bg-white text-[#00856A] font-bold py-3 px-8 rounded-full text-lg transition duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-100">
               Sign Up Now
             </button>
@@ -302,7 +302,7 @@ export function LandingPageComponent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap justify-between items-center">
             <div className="w-full md:w-1/3 mb-6 md:mb-0">
-              <h3 className="text-2xl font-bold text-[#00856A]">TATA Med Tracking</h3>
+              <h3 className="text-2xl font-bold text-[#00856A]">Poppai.AI Med Tracking</h3>
               <p className="mt-2 text-sm">Revolutionizing medical tracking with AI</p>
             </div>
             <div className="w-full md:w-1/3 mb-6 md:mb-0">
@@ -340,7 +340,7 @@ export function LandingPageComponent() {
             </div>
           </div>
           <div className="mt-8 border-t border-gray-700 pt-8 text-sm text-center">
-            <p>&copy; {new Date().getFullYear()} TATA Med Tracking. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Poppai.AI Med Tracking. All rights reserved.</p>
           </div>
         </div>
       </footer>

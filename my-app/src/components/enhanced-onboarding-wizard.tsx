@@ -59,6 +59,43 @@ export function EnhancedOnboardingWizardComponent() {
     age: 65
   })
 
+  // Add useEffect to load saved data on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('onboardingData')
+    if (savedData) {
+      const { medications: savedMeds, currentMed, step: savedStep, userProfile: savedProfile } = JSON.parse(savedData)
+      setMedications(savedMeds || [])
+      setCurrentMedication(currentMed || {
+        name: '',
+        brandName: '',
+        genericName: '',
+        dosage: 0.25,
+        frequency: 1,
+        schedule: ['08:00'],
+        pillsPerDose: [1],
+        days: ['Everyday']
+      })
+      setStep(savedStep || 1)
+      setUserProfile(savedProfile || {
+        role: 'Elder',
+        sex: 'Male',
+        age: 65
+      })
+    }
+  }, [])
+
+  // Add useEffect to save data whenever relevant states change
+  useEffect(() => {
+    const dataToSave = {
+      medications,
+      currentMed: currentMedication,
+      step,
+      userProfile
+    }
+    localStorage.setItem('onboardingData', JSON.stringify(dataToSave))
+    console.log('Onboarding progress saved:', dataToSave)
+  }, [medications, currentMedication, step, userProfile])
+
   const handleSearch = async (query: string) => {
     setSearchQuery(query)
     if (query.length < 3) {
@@ -92,7 +129,8 @@ export function EnhancedOnboardingWizardComponent() {
 
   const handleAddMedication = () => {
     if (currentMedication.name) {
-      setMedications([...medications, currentMedication])
+      const updatedMedications = [...medications, currentMedication]
+      setMedications(updatedMedications)
       setCurrentMedication({
         name: '',
         brandName: '',
@@ -107,6 +145,10 @@ export function EnhancedOnboardingWizardComponent() {
       setSearchQuery('')
       setSearchResults([])
       setStep(1)
+      
+      // Log the medication addition
+      console.log('Medication added:', currentMedication)
+      console.log('Updated medications list:', updatedMedications)
     }
   }
 
@@ -243,6 +285,16 @@ export function EnhancedOnboardingWizardComponent() {
     </motion.div>
   )
 
+  // Add cleanup to final step
+  const handleComplete = () => {
+    console.log('Onboarding completed:', {
+      medications,
+      userProfile
+    })
+    localStorage.removeItem('onboardingData') // Clean up storage after completion
+    router.push('/sign-up')
+  }
+
   const renderComplete = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -279,7 +331,12 @@ export function EnhancedOnboardingWizardComponent() {
           </TableBody>
         </Table>
       </div>
-      <Button className="mt-6 bg-[#00856A] hover:bg-[#006B55] text-white" onClick={() => router.push('/sign-up')}>Get Started!</Button>
+      <Button 
+        className="mt-6 bg-[#00856A] hover:bg-[#006B55] text-white" 
+        onClick={handleComplete}
+      >
+        Get Started!
+      </Button>
     </motion.div>
   )
 
@@ -300,7 +357,7 @@ export function EnhancedOnboardingWizardComponent() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          TATA Med Tracking
+          Poppai.AI Med Tracking
         </motion.h1>
         <AnimatePresence mode="wait">
           {step === 1 && renderStep1()}
