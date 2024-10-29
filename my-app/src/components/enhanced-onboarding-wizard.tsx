@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect} from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { User } from 'lucide-react'
@@ -32,6 +32,12 @@ interface UserProfile {
   role: 'Elder' | 'Caretaker'
   sex: 'Male' | 'Female' | 'Other'
   age: number
+}
+
+interface FDADrugResult {
+  brand_name: string
+  generic_name: string
+  // Add other FDA API fields if needed
 }
 
 export function EnhancedOnboardingWizardComponent() {
@@ -111,7 +117,7 @@ export function EnhancedOnboardingWizardComponent() {
       const response = await fetch(`https://api.fda.gov/drug/ndc.json?search=(brand_name:"${query}"+generic_name:"${query}")&limit=5`)
       if (!response.ok) throw new Error('Failed to fetch data')
       const data = await response.json()
-      const results = data.results.map((result: any) => ({
+      const results = data.results.map((result: FDADrugResult) => ({
         brand_name: result.brand_name,
         generic_name: result.generic_name
       }))
@@ -173,11 +179,14 @@ export function EnhancedOnboardingWizardComponent() {
     setSelectedDrug(drugName)
   }
 
-  const handleMedicationChange = (field: string, value: any) => {
+  const handleMedicationChange = (field: keyof Medication, value: string | number | string[] | number[]) => {
     setCurrentMedication({ ...currentMedication, [field]: value })
   }
 
-  const handleUserProfileChange = (field: keyof UserProfile, value: any) => {
+  const handleUserProfileChange = (
+    field: keyof UserProfile, 
+    value: UserProfile[keyof UserProfile]
+  ) => {
     setUserProfile({ ...userProfile, [field]: value })
   }
 

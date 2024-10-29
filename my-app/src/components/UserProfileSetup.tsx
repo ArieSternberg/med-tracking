@@ -12,7 +12,7 @@ interface UserProfile {
 
 interface UserProfileSetupProps {
   userProfile: UserProfile;
-  onUserProfileChange: (field: keyof UserProfile, value: any) => void;
+  onUserProfileChange: (field: keyof UserProfile, value: UserProfile[keyof UserProfile]) => void;
   onComplete: () => void;
 }
 

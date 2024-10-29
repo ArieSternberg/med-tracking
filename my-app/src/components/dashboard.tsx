@@ -73,7 +73,7 @@ export function DashboardComponent() {
         <main className="space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle>Today's Schedule</CardTitle>
+              <CardTitle>Today\'s Schedule</CardTitle>
             </CardHeader>
             <CardContent>
               <p>You have {medications.length} medications scheduled for today.</p>

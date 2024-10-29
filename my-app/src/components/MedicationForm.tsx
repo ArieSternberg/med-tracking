@@ -13,7 +13,8 @@ interface MedicationFormProps {
     frequency: number;
     days: string[];
   };
-  onMedicationChange: (field: string, value: any) => void;
+  onMedicationChange: (field: 'brandName' | 'genericName' | 'dosage' | 'frequency' | 'days', 
+                       value: string | number | string[]) => void;
   onBack: () => void;
   onNext: () => void;
 }

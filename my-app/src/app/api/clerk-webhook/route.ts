@@ -10,13 +10,7 @@ const supabase = createClient(
 )
 
 // Define the expected payload structure
-interface UserPayload {
-  id: string;
-  email_addresses: { email_address: string, created_at: number, updated_at: number }[];
-  first_name?: string;
-  last_name?: string;
-  phone_numbers?: { phone_number: string }[];
-}
+
 
 // Add this type guard function
 function isUserEvent(event: WebhookEvent): event is WebhookEvent & { data: UserJSON } {
