@@ -37,7 +37,7 @@ interface UserProfile {
 interface FDADrugResult {
   brand_name: string
   generic_name: string
-  // Add other FDA API fields if needed
+  // Add other fields if needed from the FDA API response
 }
 
 export function EnhancedOnboardingWizardComponent() {
@@ -179,14 +179,11 @@ export function EnhancedOnboardingWizardComponent() {
     setSelectedDrug(drugName)
   }
 
-  const handleMedicationChange = (field: keyof Medication, value: string | number | string[] | number[]) => {
+  const handleMedicationChange = (field: keyof Medication, value: Medication[keyof Medication]) => {
     setCurrentMedication({ ...currentMedication, [field]: value })
   }
 
-  const handleUserProfileChange = (
-    field: keyof UserProfile, 
-    value: UserProfile[keyof UserProfile]
-  ) => {
+  const handleUserProfileChange = (field: keyof UserProfile, value: UserProfile[keyof UserProfile]) => {
     setUserProfile({ ...userProfile, [field]: value })
   }
 

@@ -313,7 +313,6 @@ export function LandingPageComponent() {
                 <li><Link href="#how-it-works" className="hover:text-[#00856A]">How It Works</Link></li>
                 <li><Link href="#testimonials" className="hover:text-[#00856A]">Testimonials</Link></li>
                 <li><Link href="#faq" className="hover:text-[#00856A]">FAQ</Link></li>
-                <li><Link href="/privacyPolicy" className="hover:text-[#00856A]">Privacy Policy</Link></li>
               </ul>
             </div>
             <div className="w-full md:w-1/3">

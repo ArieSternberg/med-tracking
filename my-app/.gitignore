@@ -9,9 +9,6 @@
 #keys
 .env.local
 
-#future deplys
-/my-app/src/components/dashboard.tsx
-
 
 # testing
 /coverage

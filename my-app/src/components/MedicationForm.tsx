@@ -5,16 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
+interface Medication {
+  brandName: string;
+  genericName: string;
+  dosage: number;
+  frequency: number;
+  days: string[];
+}
+
 interface MedicationFormProps {
-  currentMedication: {
-    brandName: string;
-    genericName: string;
-    dosage: number;
-    frequency: number;
-    days: string[];
-  };
-  onMedicationChange: (field: 'brandName' | 'genericName' | 'dosage' | 'frequency' | 'days', 
-                       value: string | number | string[]) => void;
+  currentMedication: Medication;
+  onMedicationChange: (field: keyof Medication, value: Medication[keyof Medication]) => void;
   onBack: () => void;
   onNext: () => void;
 }
