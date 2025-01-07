@@ -57,15 +57,24 @@ export async function createUser(userId: string, clerkData: {
     firstName: string | null;
     lastName: string | null;
     emailAddresses: string[];
+    phoneNumbers: string[];
+}, profileData?: {
+    age?: number;
+    role?: string;
+    sex?: string;
 }) {
-    console.log('createUser called with:', { userId, clerkData })
+    console.log('createUser called with:', { userId, clerkData, profileData })
 
     const userProfile = {
         id: userId,
         firstName: clerkData.firstName || '',
         lastName: clerkData.lastName || '',
         email: clerkData.emailAddresses[0] || '',
-        createdAt: new Date().toISOString()
+        phone: clerkData.phoneNumbers[0] || '',
+        createdAt: new Date().toISOString(),
+        age: profileData?.age || null,
+        role: profileData?.role || null,
+        sex: profileData?.sex || null
     }
 
     console.log('Constructed userProfile:', userProfile)
@@ -118,24 +127,15 @@ export async function getUser(userId: string) {
 // Medication-related queries
 export async function createMedication(medicationData: any) {
     const cypher = `
-        CREATE (m:Medication {
-            id: randomUUID(),
-            name: $name,
-            brandName: $brandName,
-            genericName: $genericName,
-            dosage: $dosage,
-            frequency: $frequency,
-            schedule: $schedule,
-            pillsPerDose: $pillsPerDose,
-            days: $days
-        })
+        MERGE (m:Medication {name: $name})
+        ON CREATE SET m.id = randomUUID()
         RETURN m
     `
     const session = await getSession()
     try {
-        console.log('Creating medication with data:', medicationData)
-        const result = await session.run(cypher, medicationData)
-        console.log('Medication creation result:', result.records[0].get('m').properties)
+        console.log('Creating/finding medication with name:', medicationData.name)
+        const result = await session.run(cypher, { name: medicationData.name })
+        console.log('Medication node result:', result.records[0].get('m').properties)
         return result.records
     } catch (error) {
         console.error('Error creating medication:', error)
@@ -145,16 +145,30 @@ export async function createMedication(medicationData: any) {
     }
 }
 
-export async function linkUserToMedication(userId: string, medicationId: string) {
+export async function linkUserToMedication(userId: string, medicationId: string, schedule: any) {
     const cypher = `
         MATCH (u:User {id: $userId})
         MATCH (m:Medication {id: $medicationId})
         MERGE (u)-[r:TAKES]->(m)
+        SET r.schedule = $schedule.schedule,
+            r.pillsPerDose = $schedule.pillsPerDose,
+            r.days = $schedule.days,
+            r.frequency = $schedule.frequency,
+            r.updatedAt = datetime()
         RETURN r
     `
     const session = await getSession()
     try {
-        const result = await session.run(cypher, { userId, medicationId })
+        const result = await session.run(cypher, { 
+            userId, 
+            medicationId,
+            schedule: {
+                schedule: schedule.schedule,
+                pillsPerDose: schedule.pillsPerDose,
+                days: schedule.days,
+                frequency: schedule.frequency
+            }
+        })
         return result.records
     } finally {
         await session.close()
@@ -164,12 +178,15 @@ export async function linkUserToMedication(userId: string, medicationId: string)
 export async function getUserMedications(userId: string) {
     const cypher = `
         MATCH (u:User {id: $userId})-[r:TAKES]->(m:Medication)
-        RETURN m
+        RETURN m, r
     `
     const session = await getSession()
     try {
         const result = await session.run(cypher, { userId })
-        return result.records.map(record => record.get('m').properties)
+        return result.records.map(record => ({
+            medication: record.get('m').properties,
+            schedule: record.get('r').properties
+        }))
     } finally {
         await session.close()
     }

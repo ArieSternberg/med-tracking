@@ -123,47 +123,59 @@ export function EnhancedOnboardingWizardComponent() {
   const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
 
   const handleFinish = async () => {
+    console.log('handleFinish called');
     if (!user) {
-      console.log('No user found in Clerk context')
-      return
+      console.log('No user found in Clerk context');
+      return;
     }
 
     try {
-      console.log('Raw Clerk user data:', {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailAddresses: user.emailAddresses
-      })
-
+      console.log('Starting user creation with Clerk ID:', user.id);
+      
       // Get Clerk user data
       const clerkData = {
         firstName: user.firstName,
         lastName: user.lastName,
-        emailAddresses: user.emailAddresses.map(email => email.emailAddress)
-      }
+        emailAddresses: user.emailAddresses.map(email => email.emailAddress),
+        phoneNumbers: user.phoneNumbers.map(phone => phone.phoneNumber)
+      };
 
-      console.log('Formatted clerk data for Neo4j:', clerkData)
+      console.log('Formatted Clerk data:', clerkData);
 
       // Save user profile with combined data
-      console.log('Attempting to create user in Neo4j with ID:', user.id)
-      const result = await createUser(user.id, clerkData)
-      console.log('Neo4j user creation result:', result)
+      console.log('Creating user in Neo4j...');
+      const result = await createUser(user.id, clerkData, {
+        age: userProfile.age,
+        role: userProfile.role,
+        sex: userProfile.sex
+      });
+      console.log('Neo4j user creation result:', result);
 
       // Save each medication and link to user
+      console.log('Total medications to create:', medications.length);
       for (const med of medications) {
-        console.log('Creating medication:', med)
-        const [medicationRecord] = await createMedication(med)
-        const medicationId = medicationRecord.get('m').properties.id
-        console.log('Linking medication', medicationId, 'to user', user.id)
-        await linkUserToMedication(user.id, medicationId)
+        console.log('Creating medication:', med.name);
+        // Create or find medication node with just the name
+        const [medicationRecord] = await createMedication({ name: med.name });
+        const medicationId = medicationRecord.get('m').properties.id;
+        
+        // Create relationship with schedule details
+        const schedule = {
+          schedule: med.schedule,
+          pillsPerDose: med.pillsPerDose,
+          days: med.days,
+          frequency: med.frequency
+        };
+        
+        console.log('Linking medication', medicationId, 'to user', user.id, 'with schedule:', schedule);
+        await linkUserToMedication(user.id, medicationId, schedule);
       }
 
-      // Navigate to dashboard or next step
-      window.location.href = '/dashboard'
+      console.log('All data saved successfully, redirecting to dashboard...');
+      window.location.href = '/dashboard';
     } catch (error) {
-      console.error('Error in handleFinish:', error)
-      setError('Failed to save your data. Please try again.')
+      console.error('Error in handleFinish:', error);
+      setError('Failed to save your data. Please try again.');
     }
   }
 
@@ -543,7 +555,7 @@ export function EnhancedOnboardingWizardComponent() {
           </TableBody>
         </Table>
       </div>
-      <Button className="mt-4">Get Started!</Button>
+      <Button onClick={handleFinish} className="mt-4">Get Started!</Button>
     </motion.div>
   )
 
