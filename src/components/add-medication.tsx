@@ -1,51 +1,28 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Search, Plus, Edit2, ChevronRight, ChevronLeft, Pill, User, Phone } from 'lucide-react'
+import { useState } from 'react'
+import { useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Search, ChevronRight, ChevronLeft, Pill } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { createUser, createMedication, linkUserToMedication, findUserByPhone, createCaretakerRelationship } from '@/lib/neo4j'
-import { useUser } from '@clerk/nextjs'
-
-interface Medication {
-  name: string
-  brandName: string
-  genericName: string
-  dosage: number
-  frequency: number
-  schedule: string[]
-  pillsPerDose: number[]
-  days: string[]
-}
+import { createMedication, linkUserToMedication } from '@/lib/neo4j'
+import { toast } from "sonner"
 
 interface DrugResult {
   brand_name: string
   generic_name: string
 }
 
-interface UserProfile {
-  role: 'Elder' | 'Caretaker'
-  sex: 'Male' | 'Female' | 'Other'
-  age: number
-}
-
-interface ElderConnection {
-  phoneNumber: string
-  elderUser: any | null
-  error: string | null
-}
-
-export function EnhancedOnboardingWizardComponent() {
+export function AddMedicationComponent() {
   const { user } = useUser()
+  const router = useRouter()
   const [step, setStep] = useState(1)
-  const [medications, setMedications] = useState<Medication[]>([])
-  const [currentMedication, setCurrentMedication] = useState<Medication>({
+  const [currentMedication, setCurrentMedication] = useState({
     name: '',
     brandName: '',
     genericName: '',
@@ -60,16 +37,6 @@ export function EnhancedOnboardingWizardComponent() {
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDrug, setSelectedDrug] = useState<string | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    role: 'Elder',
-    sex: 'Male',
-    age: 65
-  })
-  const [elderConnection, setElderConnection] = useState<ElderConnection>({
-    phoneNumber: '',
-    elderUser: null,
-    error: null
-  })
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query)
@@ -102,97 +69,32 @@ export function EnhancedOnboardingWizardComponent() {
     }
   }
 
-  const handleAddMedication = () => {
-    if (currentMedication.name) {
-      setMedications([...medications, currentMedication])
-      setCurrentMedication({
-        name: '',
-        brandName: '',
-        genericName: '',
-        dosage: 0.25,
-        frequency: 1,
-        schedule: ['08:00'],
-        pillsPerDose: [1],
-        days: ['Everyday']
-      })
-      setSelectedDrug(null)
-      setSearchQuery('')
-      setSearchResults([])
-      setStep(1)
-    }
-  }
+  const handleFinish = async () => {
+    if (!user) return
 
-  const handleEditMedication = (index: number) => {
-    setCurrentMedication(medications[index])
-    setMedications(medications.filter((_, i) => i !== index))
-    setStep(2)
-    setSearchQuery(medications[index].name)
-    setSearchResults([])
-    setSelectedDrug(medications[index].name)
+    try {
+      // Create or find medication node
+      const [medicationRecord] = await createMedication({ name: currentMedication.name })
+      const medicationId = medicationRecord.get('m').properties.id
+
+      // Create relationship with schedule details
+      const schedule = {
+        schedule: currentMedication.schedule,
+        pillsPerDose: currentMedication.pillsPerDose,
+        days: currentMedication.days,
+        frequency: currentMedication.frequency
+      }
+
+      await linkUserToMedication(user.id, medicationId, schedule)
+      toast.success("Medication added successfully!")
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Error saving medication:', error)
+      toast.error("Failed to add medication")
+    }
   }
 
   const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
-
-  const handleFinish = async () => {
-    console.log('handleFinish called');
-    if (!user) {
-      console.log('No user found in Clerk context');
-      return;
-    }
-
-    try {
-      console.log('Starting user creation with Clerk ID:', user.id);
-      
-      // Get Clerk user data
-      const clerkData = {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailAddresses: user.emailAddresses.map(email => email.emailAddress),
-        phoneNumbers: user.phoneNumbers.map(phone => phone.phoneNumber)
-      };
-
-      console.log('Formatted Clerk data:', clerkData);
-
-      // Save user profile with combined data
-      console.log('Creating user in Neo4j...');
-      const result = await createUser(user.id, clerkData, {
-        age: userProfile.age,
-        role: userProfile.role,
-        sex: userProfile.sex
-      });
-      console.log('Neo4j user creation result:', result);
-
-      // If user is a caretaker and has selected an elder, create the relationship
-      if (userProfile.role === 'Caretaker' && elderConnection.elderUser) {
-        console.log('Creating caretaker relationship...');
-        await createCaretakerRelationship(user.id, elderConnection.elderUser.id);
-      }
-
-      // Save each medication and link to user
-      console.log('Total medications to create:', medications.length);
-      for (const med of medications) {
-        console.log('Creating medication:', med.name);
-        const [medicationRecord] = await createMedication({ name: med.name });
-        const medicationId = medicationRecord.get('m').properties.id;
-        
-        const schedule = {
-          schedule: med.schedule,
-          pillsPerDose: med.pillsPerDose,
-          days: med.days,
-          frequency: med.frequency
-        };
-        
-        console.log('Linking medication', medicationId, 'to user', user.id, 'with schedule:', schedule);
-        await linkUserToMedication(user.id, medicationId, schedule);
-      }
-
-      console.log('All data saved successfully, redirecting to dashboard...');
-      window.location.href = '/dashboard';
-    } catch (error) {
-      console.error('Error in handleFinish:', error);
-      setError('Failed to save your data. Please try again.');
-    }
-  }
 
   const roundToNearest15Minutes = (timeString: string) => {
     const [hours, minutes] = timeString.split(':').map(Number)
@@ -216,9 +118,7 @@ export function EnhancedOnboardingWizardComponent() {
           type="text"
           placeholder="Search for medication"
           value={searchQuery}
-          onChange={(e) => {
-            handleSearch(e.target.value)
-          }}
+          onChange={(e) => handleSearch(e.target.value)}
           className="pr-10"
         />
         <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -262,44 +162,6 @@ export function EnhancedOnboardingWizardComponent() {
           ))}
         </AnimatePresence>
       </ul>
-      <div className="mt-4 bg-white rounded-lg shadow overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-semibold text-primary">Medication</TableHead>
-              <TableHead className="font-semibold text-primary">Daily Takes</TableHead>
-              <TableHead className="font-semibold text-primary">Days</TableHead>
-              <TableHead className="font-semibold text-primary">Edit</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <AnimatePresence>
-              {medications.map((med, index) => (
-                <motion.tr
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2, delay: index * 0.05 }}
-                  className="hover:bg-muted/50"
-                >
-                  <TableCell>{med.name}</TableCell>
-                  <TableCell>{med.frequency}</TableCell>
-                  <TableCell>{med.days.join(', ')}</TableCell>
-                  <TableCell>
-                    <Button onClick={() => handleEditMedication(index)} variant="ghost" size="sm">
-                      <Edit2 className="h-4 w-4 text-primary" />
-                    </Button>
-                  </TableCell>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex justify-end">
-        <Button onClick={() => setStep(5)} variant="secondary">Done</Button>
-      </div>
     </motion.div>
   )
 
@@ -521,221 +383,8 @@ export function EnhancedOnboardingWizardComponent() {
       ))}
       <div className="flex justify-between">
         <Button onClick={() => setStep(2)} variant="outline"><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-        <Button onClick={() => {
-          handleAddMedication()
-          setStep(1)
-        }}>Add Medication</Button>
+        <Button onClick={handleFinish}>Add Medication</Button>
       </div>
-    </motion.div>
-  )
-
-  const renderConfirmation = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4"
-    >
-      <h2 className="text-2xl font-bold">Confirmation</h2>
-      <p>Are you done with all your medications?</p>
-      <div className="flex justify-between">
-        <Button onClick={() => setStep(1)} variant="outline">No, Add More</Button>
-        <Button onClick={() => setStep(6)}>Yes, Proceed</Button>
-      </div>
-    </motion.div>
-  )
-
-  const renderUserProfile = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4"
-    >
-      <h2 className="text-2xl font-bold">User Profile Setup</h2>
-      <div className="space-y-4">
-        <div>
-          <Label>Role</Label>
-          <RadioGroup
-            value={userProfile.role}
-            onValueChange={(value) => {
-              setUserProfile({ ...userProfile, role: value as 'Elder' | 'Caretaker' })
-              // Reset elder connection when switching roles
-              setElderConnection({
-                phoneNumber: '',
-                elderUser: null,
-                error: null
-              })
-            }}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Elder" id="elder" />
-              <Label htmlFor="elder">Elder</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Caretaker" id="caretaker" />
-              <Label htmlFor="caretaker">Caretaker</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <div>
-          <Label>Sex</Label>
-          <RadioGroup
-            value={userProfile.sex}
-            onValueChange={(value) => setUserProfile({ ...userProfile, sex: value as 'Male' | 'Female' | 'Other' })}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Male" id="male" />
-              <Label htmlFor="male">Male</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Female" id="female" />
-              <Label htmlFor="female">Female</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Other" id="other" />
-              <Label htmlFor="other">Other</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <div>
-          <Label htmlFor="age">Age</Label>
-          <Input
-            type="number"
-            id="age"
-            value={userProfile.age}
-            onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) })}
-            min={1}
-            max={120}
-          />
-        </div>
-      </div>
-      <Button 
-        onClick={() => setStep(userProfile.role === 'Caretaker' ? 6.5 : 7)} 
-        className="w-full"
-      >
-        {userProfile.role === 'Caretaker' ? 'Next' : 'Complete Setup'}
-      </Button>
-    </motion.div>
-  )
-
-  const renderElderConnection = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4"
-    >
-      <h2 className="text-2xl font-bold">Connect with Your Elder</h2>
-      <p className="text-gray-600">Enter your elder's phone number to connect with them</p>
-      
-      <div className="space-y-4">
-        <div className="relative">
-          <Input
-            type="tel"
-            placeholder="Enter phone number"
-            value={elderConnection.phoneNumber}
-            onChange={async (e) => {
-              const phoneNumber = e.target.value
-              setElderConnection({
-                phoneNumber,
-                elderUser: null,
-                error: null
-              })
-              
-              if (phoneNumber.length >= 10) {
-                try {
-                  const elder = await findUserByPhone(phoneNumber)
-                  if (elder && elder.role === 'Elder') {
-                    setElderConnection(prev => ({
-                      ...prev,
-                      elderUser: elder,
-                      error: null
-                    }))
-                  } else {
-                    setElderConnection(prev => ({
-                      ...prev,
-                      elderUser: null,
-                      error: 'No elder found with this phone number'
-                    }))
-                  }
-                } catch (error) {
-                  setElderConnection(prev => ({
-                    ...prev,
-                    elderUser: null,
-                    error: 'Error searching for elder'
-                  }))
-                }
-              }
-            }}
-            className="pl-10"
-          />
-          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        </div>
-        
-        {elderConnection.elderUser && (
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-green-700">Elder found:</p>
-            <p className="font-medium">{elderConnection.elderUser.firstName} {elderConnection.elderUser.lastName}</p>
-          </div>
-        )}
-        
-        {elderConnection.error && (
-          <p className="text-red-500">{elderConnection.error}</p>
-        )}
-      </div>
-
-      <div className="flex justify-between">
-        <Button onClick={() => setStep(6)} variant="outline">
-          <ChevronLeft className="mr-2 h-4 w-4" /> Back
-        </Button>
-        <Button 
-          onClick={() => setStep(7)}
-          disabled={!elderConnection.elderUser}
-        >
-          Next <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-    </motion.div>
-  )
-
-  const renderComplete = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4 text-center"
-    >
-      <h2 className="text-2xl font-bold">Setup Complete!</h2>
-      <p>Thank you for setting up your profile and medications.</p>
-      <User className="w-16 h-16 mx-auto text-primary" />
-      <div>
-        <p><strong>Role:</strong> {userProfile.role}</p>
-        <p><strong>Sex:</strong> {userProfile.sex}</p>
-        <p><strong>Age:</strong> {userProfile.age}</p>
-      </div>
-      <div>
-        <h3 className="text-xl font-semibold mt-4 mb-2">Your Medications</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-semibold text-primary">Medication</TableHead>
-              <TableHead className="font-semibold text-primary">Daily Takes</TableHead>
-              <TableHead className="font-semibold text-primary">Days</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {medications.map((med, index) => (
-              <TableRow key={index}>
-                <TableCell>{med.name}</TableCell>
-                <TableCell>{med.frequency}</TableCell>
-                <TableCell>{med.days.join(', ')}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <Button onClick={handleFinish} className="mt-4">Get Started!</Button>
     </motion.div>
   )
 
@@ -743,9 +392,6 @@ export function EnhancedOnboardingWizardComponent() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
       <motion.div 
         className="bg-white/90 backdrop-blur-md p-8 rounded-lg shadow-lg w-full max-w-md relative z-10"
-        style={{
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)',
-        }}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
@@ -756,18 +402,14 @@ export function EnhancedOnboardingWizardComponent() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          Meds Tracking
+          Add New Medication
         </motion.h1>
         <AnimatePresence mode="wait">
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
-          {step === 5 && renderConfirmation()}
-          {step === 6 && renderUserProfile()}
-          {step === 6.5 && renderElderConnection()}
-          {step === 7 && renderComplete()}
         </AnimatePresence>
       </motion.div>
     </div>
   )
-}
+} 

@@ -6,12 +6,24 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from './Header'
-import { SignInButton, SignUpButton, useAuth } from "@clerk/nextjs"
+import { SignInButton, SignUpButton, useAuth, useClerk } from "@clerk/nextjs"
+import { toast } from "sonner"
 
 export function LandingPageComponent() {
   const { isSignedIn } = useAuth()
+  const { signOut } = useClerk()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Error signing out:', error)
+      toast.error("Failed to sign out")
+    }
+  }
 
   const HeroImage = () => (
     <div className="w-full h-[333px] relative rounded-lg shadow-xl overflow-hidden">
@@ -52,11 +64,23 @@ export function LandingPageComponent() {
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
               {isSignedIn ? (
-                <button 
-                  onClick={() => router.push('/onboarding')}
-                  className="bg-[#00856A] hover:bg-[#006B55] text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105">
-                  Try it now!
-                </button>
+                <>
+                  <button 
+                    onClick={handleSignOut}
+                    className="text-[#00856A] hover:text-[#006B55] font-bold py-2 px-4 rounded-full transition duration-300">
+                    Sign Out
+                  </button>
+                  <button 
+                    onClick={() => router.push('/dashboard')}
+                    className="text-[#00856A] hover:text-[#006B55] font-bold py-2 px-4 rounded-full transition duration-300">
+                    Dashboard
+                  </button>
+                  <button 
+                    onClick={() => router.push('/onboarding')}
+                    className="bg-[#00856A] hover:bg-[#006B55] text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105">
+                    Try it now!
+                  </button>
+                </>
               ) : (
                 <>
                   <SignInButton mode="modal">

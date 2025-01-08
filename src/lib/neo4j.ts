@@ -79,8 +79,10 @@ export async function createUser(userId: string, clerkData: {
 
     console.log('Constructed userProfile:', userProfile)
 
+    // Different Cypher query based on role
     const cypher = `
         MERGE (u:User {id: $userId})
+        ${profileData?.role === 'Elder' ? 'SET u:Elder' : profileData?.role === 'Caretaker' ? 'SET u:Caretaker' : ''}
         SET u = $userProfile
         RETURN u
     `
@@ -183,6 +185,162 @@ export async function getUserMedications(userId: string) {
     const session = await getSession()
     try {
         const result = await session.run(cypher, { userId })
+        return result.records.map(record => ({
+            medication: record.get('m').properties,
+            schedule: record.get('r').properties
+        }))
+    } finally {
+        await session.close()
+    }
+}
+
+// Delete medication for a user
+export async function deleteMedicationForUser(userId: string, medicationId: string) {
+    const cypher = `
+        MATCH (u:User {id: $userId})-[r:TAKES]->(m:Medication {id: $medicationId})
+        DELETE r
+        WITH m
+        OPTIONAL MATCH (m)<-[r2:TAKES]-()
+        WITH m, COUNT(r2) as usageCount
+        WHERE usageCount = 0
+        DELETE m
+        RETURN true as success
+    `
+    
+    const session = await getSession()
+    try {
+        await session.run(cypher, { userId, medicationId })
+        return true
+    } catch (error) {
+        console.error('Error deleting medication:', error)
+        throw error
+    } finally {
+        await session.close()
+    }
+}
+
+// Search for user by phone number
+export async function findUserByPhone(phoneNumber: string) {
+    const cypher = `
+        MATCH (u:User)
+        WHERE u.phone = $phoneNumber
+        RETURN u
+    `
+    const session = await getSession()
+    try {
+        const result = await session.run(cypher, { phoneNumber })
+        return result.records[0]?.get('u').properties
+    } finally {
+        await session.close()
+    }
+}
+
+// Create caretaker relationship
+export async function createCaretakerRelationship(caretakerId: string, elderId: string) {
+    const cypher = `
+        MATCH (c:User:Caretaker {id: $caretakerId})
+        MATCH (e:User:Elder {id: $elderId})
+        MERGE (c)-[r:CARES_FOR]->(e)
+        SET r.createdAt = datetime()
+        RETURN r
+    `
+    const session = await getSession()
+    try {
+        const result = await session.run(cypher, { caretakerId, elderId })
+        return result.records[0]
+    } finally {
+        await session.close()
+    }
+}
+
+// Delete user and all their relationships
+export async function deleteUser(userId: string) {
+    const cypher = `
+        MATCH (u:User {id: $userId})
+        OPTIONAL MATCH (u)-[r]-()
+        DELETE r, u
+        RETURN true as success
+    `
+    
+    const session = await getSession()
+    try {
+        await session.run(cypher, { userId })
+        return true
+    } catch (error) {
+        console.error('Error deleting user:', error)
+        throw error
+    } finally {
+        await session.close()
+    }
+}
+
+// Update user profile
+export async function updateUser(userId: string, updateData: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    age?: number;
+    role?: string;
+    sex?: string;
+}) {
+    const cypher = `
+        MATCH (u:User {id: $userId})
+        REMOVE u:Elder
+        REMOVE u:Caretaker
+        SET u += $updateData
+        WITH u
+        CALL {
+            WITH u
+            WITH u, $updateData.role as role
+            FOREACH (x IN CASE WHEN role = 'Elder' THEN [1] ELSE [] END | SET u:Elder)
+            FOREACH (x IN CASE WHEN role = 'Caretaker' THEN [1] ELSE [] END | SET u:Caretaker)
+        }
+        RETURN u
+    `
+    
+    const session = await getSession()
+    try {
+        const result = await session.run(cypher, { 
+            userId, 
+            updateData: {
+                ...updateData,
+                updatedAt: new Date().toISOString()
+            }
+        })
+        return result.records[0]?.get('u').properties
+    } catch (error) {
+        console.error('Error updating user:', error)
+        throw error
+    } finally {
+        await session.close()
+    }
+}
+
+// Get all elders for a caretaker
+export async function getCaretakerElders(caretakerId: string) {
+    const cypher = `
+        MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User:Elder)
+        RETURN e
+    `
+    const session = await getSession()
+    try {
+        const result = await session.run(cypher, { caretakerId })
+        return result.records.map(record => record.get('e').properties)
+    } finally {
+        await session.close()
+    }
+}
+
+// Get elder's medications by ID (for caretaker view)
+export async function getElderMedications(elderId: string) {
+    const cypher = `
+        MATCH (u:User:Elder {id: $elderId})-[r:TAKES]->(m:Medication)
+        RETURN m, r
+    `
+    const session = await getSession()
+    try {
+        const result = await session.run(cypher, { elderId })
         return result.records.map(record => ({
             medication: record.get('m').properties,
             schedule: record.get('r').properties
