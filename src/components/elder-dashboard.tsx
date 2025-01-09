@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Clock } from 'lucide-react'
+import { ChevronLeft, Clock, Bell, BellOff } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getElderMedications, getUser } from '@/lib/neo4j'
 import { toast } from "sonner"
 import { useRouter } from 'next/navigation'
+import { checkNotificationPermission, requestNotificationPermission, sendTestNotification } from '@/lib/notifications'
+import { useMedicationNotifications } from '@/hooks/use-medication-notifications'
 
 interface ElderDashboardProps {
   elderId: string | Promise<string>
@@ -41,7 +43,25 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
   const [error, setError] = useState<string | null>(null)
   const [elderData, setElderData] = useState<any>(null)
   const [resolvedElderId, setResolvedElderId] = useState<string | null>(null)
+  const [notificationStatus, setNotificationStatus] = useState<string>('default')
   const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setNotificationStatus(checkNotificationPermission())
+    }
+  }, [])
+
+  const handleEnableNotifications = async () => {
+    const permission = await requestNotificationPermission()
+    setNotificationStatus(permission)
+    if (permission === 'granted') {
+      toast.success('Notifications enabled successfully!')
+      sendTestNotification()
+    } else if (permission === 'denied') {
+      toast.error('Please enable notifications in your browser settings')
+    }
+  }
 
   useEffect(() => {
     const resolveId = async () => {
@@ -129,6 +149,12 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
     })
   }
 
+  // Use the notification hook
+  useMedicationNotifications(
+    medications,
+    notificationStatus === 'granted'
+  );
+
   if (loading) {
     return <div>Loading...</div>
   }
@@ -145,7 +171,7 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -164,6 +190,61 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
             </motion.h1>
           </div>
         </div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <Card className="border-2 border-blue-100">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {notificationStatus === 'granted' ? 
+                  <Bell className="h-6 w-6 text-green-500" /> : 
+                  <BellOff className="h-6 w-6 text-gray-400" />
+                }
+                Medication Reminders
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-2">
+                <div>
+                  {notificationStatus === 'granted' ? (
+                    <p className="text-sm text-green-600 font-medium">✓ Notifications are enabled - You'll receive reminders for your medications</p>
+                  ) : notificationStatus === 'denied' ? (
+                    <p className="text-sm text-red-600">❌ Notifications are blocked. Please enable them in your browser settings to receive medication reminders.</p>
+                  ) : (
+                    <p className="text-sm text-gray-600">Enable notifications to get timely reminders for your medications</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {notificationStatus === 'granted' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendTestNotification()}
+                      className="border-green-200 hover:border-green-300"
+                    >
+                      <Bell className="h-4 w-4 mr-2" />
+                      Test Notification
+                    </Button>
+                  )}
+                  {notificationStatus !== 'granted' && notificationStatus !== 'denied' && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleEnableNotifications}
+                      className="bg-blue-500 hover:bg-blue-600"
+                    >
+                      <Bell className="h-4 w-4 mr-2" />
+                      Enable Notifications
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         <Card>
           <CardHeader>

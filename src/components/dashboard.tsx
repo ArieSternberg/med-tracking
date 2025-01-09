@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
-import { Bell, Settings, LogOut, Clock, Trash2, User } from 'lucide-react'
+import { Bell, Settings, LogOut, Clock, Trash2, User, BellOff } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -13,6 +13,8 @@ import { useRouter } from 'next/navigation'
 import { OnboardingModal } from './onboarding-modal'
 import { ElderCard } from './elder-card'
 import { AddElderModal } from './add-elder-modal'
+import { checkNotificationPermission, requestNotificationPermission, sendTestNotification } from '@/lib/notifications'
+import { useMedicationNotifications } from '@/hooks/use-medication-notifications'
 
 interface Medication {
   medication: {
@@ -44,7 +46,33 @@ export function DashboardComponent() {
   const [userData, setUserData] = useState<any>(null)
   const [elders, setElders] = useState<any[]>([])
   const [showAddElder, setShowAddElder] = useState(false)
+  const [notificationStatus, setNotificationStatus] = useState<string>('default')
   const router = useRouter()
+
+  // Initialize notification status
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setNotificationStatus(checkNotificationPermission())
+    }
+  }, [])
+
+  // Handle enabling notifications
+  const handleEnableNotifications = async () => {
+    const permission = await requestNotificationPermission()
+    setNotificationStatus(permission)
+    if (permission === 'granted') {
+      toast.success('Notifications enabled successfully!')
+      sendTestNotification()
+    } else if (permission === 'denied') {
+      toast.error('Please enable notifications in your browser settings')
+    }
+  }
+
+  // Use the notification hook for medication reminders
+  useMedicationNotifications(
+    medications,
+    notificationStatus === 'granted'
+  );
 
   const checkUserExists = async () => {
     if (!user) return
@@ -187,9 +215,35 @@ export function DashboardComponent() {
               Welcome, {user?.firstName || 'User'}!
             </motion.h1>
             <div className="flex gap-4">
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
+              <div className="relative">
+                {notificationStatus === 'granted' ? (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => sendTestNotification()}
+                    className="text-green-500"
+                  >
+                    <Bell className="h-5 w-5" />
+                  </Button>
+                ) : notificationStatus === 'denied' ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400"
+                    onClick={() => toast.error('Please enable notifications in your browser settings')}
+                  >
+                    <BellOff className="h-5 w-5" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleEnableNotifications}
+                  >
+                    <Bell className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
               <Button 
                 variant="ghost" 
                 size="icon"

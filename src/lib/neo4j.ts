@@ -1,4 +1,4 @@
-import neo4j, { Driver } from 'neo4j-driver'
+import neo4j, { Driver, Transaction, ManagedTransaction } from 'neo4j-driver'
 
 let driver: Driver | null = null
 
@@ -197,11 +197,19 @@ export async function getUserMedications(userId: string) {
 // Delete medication for a user
 export async function deleteMedicationForUser(userId: string, medicationId: string) {
     const cypher = `
+        // First delete the TAKES relationship
         MATCH (u:User {id: $userId})-[r:TAKES]->(m:Medication {id: $medicationId})
         DELETE r
+        
+        // Then delete all TOOK_MEDICATION relationships
         WITH m
-        OPTIONAL MATCH (m)<-[r2:TAKES]-()
-        WITH m, COUNT(r2) as usageCount
+        MATCH (u:User {id: $userId})-[h:TOOK_MEDICATION]->(m)
+        DELETE h
+        
+        // Finally, check if medication is unused and delete if so
+        WITH m
+        OPTIONAL MATCH (m)<-[r:TAKES]-()
+        WITH m, COUNT(r) as usageCount
         WHERE usageCount = 0
         DELETE m
         RETURN true as success
@@ -348,4 +356,39 @@ export async function getElderMedications(elderId: string) {
     } finally {
         await session.close()
     }
-} 
+}
+
+export const recordMedicationStatus = async (
+  userId: string,
+  medicationId: string,
+  date: string,
+  scheduledTime: string,
+  actualTime: string | null,
+  status: 'taken' | 'missed'
+) => {
+  const session = await getSession();
+  try {
+    await session.executeWrite((tx: ManagedTransaction) =>
+      tx.run(
+        `
+        MATCH (u:User {id: $userId})
+        MATCH (m:Medication {id: $medicationId})
+        CREATE (u)-[t:TOOK_MEDICATION {
+          date: $date,
+          scheduledTime: $scheduledTime,
+          actualTime: $actualTime,
+          status: $status
+        }]->(m)
+        RETURN t
+        `,
+        { userId, medicationId, date, scheduledTime, actualTime, status }
+      )
+    );
+    return true;
+  } catch (error) {
+    console.error('Error recording medication status:', error);
+    return false;
+  } finally {
+    await session.close();
+  }
+}; 
